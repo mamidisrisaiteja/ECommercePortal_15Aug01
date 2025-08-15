@@ -1,4 +1,4 @@
-﻿name:  MCP Integration Pipeline
+name: 🤖 MCP Integration Pipeline
 
 on:
   workflow_dispatch:
@@ -18,72 +18,72 @@ env:
 
 jobs:
   mcp_server_health:
-    name:  MCP Server Health Check
+    name: 🔍 MCP Server Health Check
     runs-on: ubuntu-latest
     
     steps:
-      - name:  Setup Node.js
+      - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name:  Install Playwright MCP Server
+      - name: 🎭 Install Playwright MCP Server
         run: |
           npm install -g @executeautomation/playwright-mcp-server
           npx playwright install chromium
       
-      - name:  Health Check
+      - name: 🔍 Health Check
         run: |
           echo "Testing MCP server installation and basic functionality..."
           npm list -g @executeautomation/playwright-mcp-server
           npx playwright --version
-          echo " MCP server health check passed"
+          echo "✅ MCP server health check passed"
 
   mcp_basic_test:
-    name:  MCP Basic Test
+    name: 🤖 MCP Basic Test
     needs: mcp_server_health
     runs-on: ubuntu-latest
     
     steps:
-      - name:  Checkout Repository
+      - name: 📁 Checkout Repository
         uses: actions/checkout@v4
       
-      - name:  Setup Python
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
-      - name:  Setup Node.js
+      - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name:  Install Dependencies
+      - name: 🎭 Install Dependencies
         run: |
           npm install -g @executeautomation/playwright-mcp-server
           pip install playwright pytest
           playwright install chromium
       
-      - name:  Run Basic MCP Test
+      - name: 🧪 Run Basic MCP Test
         run: |
-          echo " MCP Integration Test Starting..."
-          python -c "print(' Python setup successful')"
-          python -c "print(' Basic MCP test completed')"
-          echo " MCP integration pipeline working correctly"
+          echo "🤖 MCP Integration Test Starting..."
+          python -c "print('✅ Python setup successful')"
+          python -c "print('✅ Basic MCP test completed')"
+          echo "🎯 MCP integration pipeline working correctly"
       
-      - name:  Create Summary
+      - name: 📋 Create Summary
         run: |
-          echo "##  MCP Integration Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🤖 MCP Integration Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status**:  SUCCESS" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ✅ SUCCESS" >> $GITHUB_STEP_SUMMARY
           echo "**Test Mode**: ${{ github.event.inputs.test_mode || 'quick' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Run Number**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Features Tested:**" >> $GITHUB_STEP_SUMMARY
-          echo "-  MCP server installation" >> $GITHUB_STEP_SUMMARY
-          echo "-  Playwright installation" >> $GITHUB_STEP_SUMMARY
-          echo "-  Python environment setup" >> $GITHUB_STEP_SUMMARY
-          echo "-  Basic integration test" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ MCP server installation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Playwright installation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Python environment setup" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Basic integration test" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Pipeline fixed using GitHub MCP Server integration*" >> $GITHUB_STEP_SUMMARY
