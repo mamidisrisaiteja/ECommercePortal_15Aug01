@@ -3,13 +3,14 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+
 class Logger:
     """Logging utility for the test framework."""
-    
+
     def __init__(self, name: str = "test_automation", level: str = "INFO"):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(getattr(logging, level.upper()))
-        
+
         # Avoid adding multiple handlers
         if not self.logger.handlers:
             self._setup_handlers()
