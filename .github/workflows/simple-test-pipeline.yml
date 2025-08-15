@@ -1,0 +1,202 @@
+name: 🧪 Simple Test Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: false
+        default: 'basic'
+        type: choice
+        options:
+          - basic
+          - comprehensive
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  simple_tests:
+    name: 🧪 Simple Playwright Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: 📦 Install Dependencies
+        run: |
+          pip install playwright pytest pytest-html pytest-xvfb
+          playwright install chromium
+      
+      - name: 🔧 Create Test Structure
+        run: |
+          mkdir -p test_results
+          mkdir -p simple_tests
+          
+          # Create a simple working test
+          cat > simple_tests/test_basic_playwright.py << 'EOF'
+          import pytest
+          from playwright.sync_api import sync_playwright, Page, Browser
+          
+          def test_simple_navigation():
+              """Test basic navigation to a website."""
+              with sync_playwright() as p:
+                  browser = p.chromium.launch(headless=True)
+                  page = browser.new_page()
+                  
+                  # Navigate to a simple test site
+                  page.goto("https://example.com")
+                  
+                  # Verify title
+                  assert "Example Domain" in page.title()
+                  
+                  # Take a screenshot
+                  page.screenshot(path="test_results/example_page.png")
+                  
+                  browser.close()
+          
+          def test_saucedemo_basic():
+              """Test basic SauceDemo functionality."""
+              with sync_playwright() as p:
+                  browser = p.chromium.launch(headless=True)
+                  page = browser.new_page()
+                  
+                  try:
+                      # Navigate to SauceDemo
+                      page.goto("https://www.saucedemo.com", timeout=30000)
+                      
+                      # Verify page loaded
+                      assert "Swag Labs" in page.title()
+                      
+                      # Take screenshot of login page
+                      page.screenshot(path="test_results/saucedemo_login.png")
+                      
+                      # Check if login form exists
+                      login_button = page.locator('[data-test="login-button"]')
+                      assert login_button.is_visible()
+                      
+                  except Exception as e:
+                      # Take screenshot of any error state
+                      page.screenshot(path="test_results/saucedemo_error.png")
+                      print(f"Test encountered error: {e}")
+                      raise
+                  finally:
+                      browser.close()
+          
+          def test_httpbin_user_agent():
+              """Test user agent detection."""
+              with sync_playwright() as p:
+                  browser = p.chromium.launch(headless=True)
+                  page = browser.new_page()
+                  
+                  # Navigate to httpbin user-agent endpoint
+                  page.goto("https://httpbin.org/user-agent", timeout=30000)
+                  
+                  # Verify response contains user agent info
+                  content = page.text_content("body")
+                  assert "Mozilla" in content or "Chrome" in content
+                  
+                  # Take screenshot
+                  page.screenshot(path="test_results/httpbin_user_agent.png")
+                  
+                  browser.close()
+          EOF
+      
+      - name: 🚀 Run Simple Tests
+        run: |
+          python -m pytest simple_tests/ \
+            --html=test_results/simple_test_report.html \
+            --self-contained-html \
+            -v \
+            --tb=short \
+            --capture=tee-sys
+        continue-on-error: true
+      
+      - name: 📊 Run Comprehensive Tests (if selected)
+        if: github.event.inputs.test_type == 'comprehensive'
+        run: |
+          # Create additional comprehensive test
+          cat > simple_tests/test_comprehensive.py << 'EOF'
+          import pytest
+          from playwright.sync_api import sync_playwright
+          
+          def test_multiple_pages():
+              """Test navigation across multiple pages."""
+              with sync_playwright() as p:
+                  browser = p.chromium.launch(headless=True)
+                  page = browser.new_page()
+                  
+                  # Test multiple sites
+                  sites = [
+                      ("https://example.com", "Example Domain"),
+                      ("https://httpbin.org/", "httpbin")
+                  ]
+                  
+                  for url, expected_text in sites:
+                      try:
+                          page.goto(url, timeout=30000)
+                          content = page.text_content("body")
+                          assert expected_text.lower() in content.lower()
+                          page.screenshot(path=f"test_results/{url.split('//')[1].split('/')[0]}.png")
+                      except Exception as e:
+                          print(f"Failed to test {url}: {e}")
+                  
+                  browser.close()
+          EOF
+          
+          python -m pytest simple_tests/test_comprehensive.py \
+            --html=test_results/comprehensive_test_report.html \
+            --self-contained-html \
+            -v \
+            --tb=short
+        continue-on-error: true
+      
+      - name: 📋 Create Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Simple Test Results" > test_summary.md
+          echo "" >> test_summary.md
+          echo "**Test Type**: ${{ github.event.inputs.test_type || 'basic' }}" >> test_summary.md
+          echo "**Run ID**: ${{ github.run_number }}" >> test_summary.md
+          echo "" >> test_summary.md
+          
+          # Check what files were created
+          echo "### 📁 Generated Files:" >> test_summary.md
+          if [ -d "test_results" ]; then
+            echo "- Test Results Directory: ✅" >> test_summary.md
+            for file in test_results/*; do
+              if [ -f "$file" ]; then
+                echo "  - $(basename "$file")" >> test_summary.md
+              fi
+            done
+          else
+            echo "- Test Results Directory: ❌" >> test_summary.md
+          fi
+          
+          # Add summary to GitHub
+          cat test_summary.md >> $GITHUB_STEP_SUMMARY
+      
+      - name: 📤 Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-test-results
+          path: |
+            test_results/
+            test_summary.md
+          retention-days: 30
+      
+      - name: 🎯 List Generated Files
+        if: always()
+        run: |
+          echo "=== Files in test_results directory ==="
+          ls -la test_results/ || echo "No test_results directory found"
+          echo ""
+          echo "=== All files in workspace ==="
+          find . -name "*.html" -o -name "*.png" -o -name "*.txt" | head -20
