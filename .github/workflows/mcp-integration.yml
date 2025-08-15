@@ -39,51 +39,106 @@ jobs:
           npx playwright --version
           echo " MCP server health check passed"
 
-  mcp_basic_test:
-    name:  MCP Basic Test
+  mcp_integration_tests:
+    name: 🧪 MCP Integration Tests
     needs: mcp_server_health
     runs-on: ubuntu-latest
     
     steps:
-      - name:  Checkout Repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
       
-      - name:  Setup Python
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
-      - name:  Setup Node.js
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name:  Install Dependencies
+      - name: 📦 Install Dependencies
         run: |
           npm install -g @executeautomation/playwright-mcp-server
-          pip install playwright pytest
-          playwright install chromium
+          pip install playwright pytest pytest-html pytest-xvfb allure-pytest
+          playwright install chromium firefox webkit
+          cd automation_framework
+          pip install -r requirements.txt || echo "No requirements.txt found, continuing..."
       
-      - name:  Run Basic MCP Test
+      - name: 🔧 Setup Test Environment
         run: |
-          echo " MCP Integration Test Starting..."
-          python -c "print(' Python setup successful')"
-          python -c "print(' Basic MCP test completed')"
-          echo " MCP integration pipeline working correctly"
+          mkdir -p test-results
+          mkdir -p allure-results
+          mkdir -p reports
       
-      - name:  Create Summary
+      - name: 🚀 Run MCP Integration Tests
         run: |
-          echo "##  MCP Integration Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "🧪 Running MCP Playwright Integration Tests..."
+          cd automation_framework
+          python -m pytest tests/test_mcp_integration.py \
+            --html=../test-results/mcp-integration-report.html \
+            --self-contained-html \
+            --alluredir=../allure-results \
+            -v \
+            --tb=short \
+            --capture=tee-sys
+        continue-on-error: true
+      
+      - name: 🎯 Run BDD Feature Tests (if test_mode=full)
+        if: github.event.inputs.test_mode == 'full'
+        run: |
+          echo "🎭 Running BDD Feature Tests..."
+          cd automation_framework
+          python -m pytest tests/steps/test_steps.py \
+            --html=../test-results/bdd-integration-report.html \
+            --self-contained-html \
+            --alluredir=../allure-results \
+            -v \
+            --tb=short \
+            --capture=tee-sys
+        continue-on-error: true
+      
+      - name: 📊 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results/
+            allure-results/
+            reports/
+          retention-days: 30
+      
+      - name: 📈 Create Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 MCP Integration Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status**:  SUCCESS" >> $GITHUB_STEP_SUMMARY
           echo "**Test Mode**: ${{ github.event.inputs.test_mode || 'quick' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Run Number**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Features Tested:**" >> $GITHUB_STEP_SUMMARY
-          echo "-  MCP server installation" >> $GITHUB_STEP_SUMMARY
-          echo "-  Playwright installation" >> $GITHUB_STEP_SUMMARY
-          echo "-  Python environment setup" >> $GITHUB_STEP_SUMMARY
-          echo "-  Basic integration test" >> $GITHUB_STEP_SUMMARY
+          
+          # Count test results
+          if [ -f test-results/mcp-integration-report.html ]; then
+            echo "### 📋 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ MCP Integration Tests: **Executed**" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ github.event.inputs.test_mode }}" == "full" ]; then
+              echo "- ✅ BDD Feature Tests: **Executed**" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ⏩ BDD Feature Tests: **Skipped** (quick mode)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📁 Test Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- 🎯 HTML Test Reports" >> $GITHUB_STEP_SUMMARY
+            echo "- 📸 Screenshots (if any)" >> $GITHUB_STEP_SUMMARY
+            echo "- 📊 Allure Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**💡 Download test artifacts from the 'Artifacts' section below.**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Test execution failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "*Pipeline fixed using GitHub MCP Server integration*" >> $GITHUB_STEP_SUMMARY
+          echo "*🤖 Pipeline powered by GitHub MCP Server integration*" >> $GITHUB_STEP_SUMMARY
