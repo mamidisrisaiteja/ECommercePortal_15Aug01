@@ -1,0 +1,26 @@
+[flake8]
+max-line-length = 100
+exclude = 
+    .git,
+    __pycache__,
+    .pytest_cache,
+    reports,
+    node_modules,
+    venv,
+    env,
+    .venv,
+    .env
+ignore = 
+    E203,    # whitespace before ':'
+    W503,    # line break before binary operator
+    E501,    # line too long (handled by max-line-length)
+    W293,    # blank line contains whitespace
+    E302,    # expected 2 blank lines, found 1
+    E305,    # expected 2 blank lines after class or function definition
+per-file-ignores =
+    __init__.py:F401
+    conftest.py:F401
+    test_*.py:F401,F811
+max-complexity = 10
+import-order-style = google
+application-import-names = automation_framework
