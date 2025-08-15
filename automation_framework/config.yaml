@@ -1,0 +1,30 @@
+browser:
+  type: chromium
+  headless: false
+  viewport:
+    width: 1920
+    height: 1080
+
+timeouts:
+  default: 30000
+  navigation: 60000
+  element: 10000
+
+reporting:
+  screenshots: true
+  videos: false
+  allure: true
+
+urls:
+  base_url: "https://www.saucedemo.com"
+  login_url: "https://www.saucedemo.com/"
+  inventory_url: "https://www.saucedemo.com/inventory.html"
+  cart_url: "https://www.saucedemo.com/cart.html"
+
+test_data:
+  valid_user:
+    username: "standard_user"
+    password: "secret_sauce"
+  invalid_user:
+    username: "standard_use"
+    password: "secret_sauce"
